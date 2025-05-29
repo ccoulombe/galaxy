@@ -2248,7 +2248,10 @@ class MinimalJobWrapper(HasResourceParameters):
                             extra_files_path=extra_files_path,
                             hash_function=self.app.config.hash_function,
                         )
-                        compute_dataset_hash.delay(request=request)
+                        try:
+                            compute_dataset_hash.delay(request=request)
+                        except Exception:
+                            log.exception("Error occurred while attemping to calculate dataset hash")
 
         user = job.user
         if user and collected_bytes > 0 and quota_source_info is not None and quota_source_info.use:
