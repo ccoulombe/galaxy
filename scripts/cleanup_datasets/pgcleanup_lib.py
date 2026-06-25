@@ -246,7 +246,7 @@ class Action:
     @classmethod
     def doc_iter(cls):
         for line in cls.__doc__.splitlines():
-            yield line.replace(" ", "", 4)
+            yield line[4:] if line.startswith("    ") else line
 
     def __init__(self, app):
         self._log_dir = app.args.log_dir

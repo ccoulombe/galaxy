@@ -33,6 +33,7 @@ class TestScriptsPgCleanupIntegration(BaseScriptsIntegrationTestCase):
             ],
         )
         assert "Galaxy Server Cleanup" in output
+        assert "Subject: Galaxy Server Cleanup - 1 datasets pending deletion" in output
         assert hda["name"] in output
         assert not self.is_purged(history_id, hda)
 
