@@ -2,12 +2,39 @@ from galaxy_test.base.populators import skip_without_tool
 from .test_scripts import BaseScriptsIntegrationTestCase
 
 SCRIPT = "cleanup_datasets/pgcleanup.py"
+NOTIFIER_SCRIPT = "cleanup_datasets/notifier.py"
 
 
 class TestScriptsPgCleanupIntegration(BaseScriptsIntegrationTestCase):
     def test_help(self):
         self._skip_unless_postgres()
         self._scripts_check_argparse_help(SCRIPT)
+
+    def test_notifier(self):
+        self._skip_unless_postgres()
+
+        history_id = self.dataset_populator.new_history()
+        hda = self.dataset_populator.new_dataset(history_id, wait=True)
+        config_file = self.write_config_file()
+        output = self._scripts_check_output(
+            NOTIFIER_SCRIPT,
+            [
+                "-c",
+                config_file,
+                "--older-than",
+                "0",
+                "--sequence",
+                "purge_old_hdas",
+                "--no-send",
+                "--fromaddr",
+                "galaxy@example.org",
+                "--smtp",
+                "localhost",
+            ],
+        )
+        assert "Galaxy Server Cleanup" in output
+        assert hda["name"] in output
+        assert not self.is_purged(history_id, hda)
 
     def test_purge_deleted_histories(self):
         self._skip_unless_postgres()

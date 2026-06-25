@@ -90,6 +90,10 @@ class TestScriptsIntegration(BaseScriptsIntegrationTestCase):
         script = "cleanup_datasets/admin_cleanup_datasets.py"
         self._scripts_check_argparse_help(script)
 
+    def test_cleanup_notifier(self):
+        script = "cleanup_datasets/notifier.py"
+        self._scripts_check_argparse_help(script)
+
     def test_set_user_disk_usage(self):
         script = "set_user_disk_usage.py"
         self._scripts_check_argparse_help(script)
