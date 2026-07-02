@@ -45,7 +45,7 @@ def test_clean_object_store_caches(tmp_path):
 
 def test_cleanup_jwds_logs_deleted_jobs_once():
     job = SimpleNamespace(id=198)
-    query = SimpleNamespace(filter=lambda *args, **kwargs: SimpleNamespace(all=lambda: [job]))
+    query = SimpleNamespace(filter=lambda *args, **kwargs: [job])
     sa_session = SimpleNamespace(query=lambda *args, **kwargs: query)
     config = SimpleNamespace(failed_jobs_working_directory_cleanup_days=5)
     object_store = SimpleNamespace(get_filename=lambda *args, **kwargs: "/tmp/job_work_198")
@@ -62,7 +62,7 @@ def test_cleanup_jwds_logs_deleted_jobs_once():
 
 def test_cleanup_jwds_does_not_log_deleted_when_already_missing():
     job = SimpleNamespace(id=198)
-    query = SimpleNamespace(filter=lambda *args, **kwargs: SimpleNamespace(all=lambda: [job]))
+    query = SimpleNamespace(filter=lambda *args, **kwargs: [job])
     sa_session = SimpleNamespace(query=lambda *args, **kwargs: query)
     config = SimpleNamespace(failed_jobs_working_directory_cleanup_days=5)
     object_store = SimpleNamespace(

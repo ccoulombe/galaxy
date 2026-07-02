@@ -793,14 +793,10 @@ def cleanup_jwds(sa_session: galaxy_scoped_session, object_store: BaseObjectStor
     """Cleanup job working directories for failed jobs that are older than X days"""
 
     def get_failed_jobs():
-        return (
-            sa_session.query(model.Job)
-            .filter(
-                model.Job.state == "error",
-                model.Job.update_time < datetime.datetime.now() - datetime.timedelta(days=days),
-                model.Job.object_store_id.isnot(None),
-            )
-            .all()
+        return sa_session.query(model.Job).filter(
+            model.Job.state == "error",
+            model.Job.update_time < datetime.datetime.now() - datetime.timedelta(days=days),
+            model.Job.object_store_id.isnot(None),
         )
 
     def delete_jwd(job):
@@ -823,12 +819,14 @@ def cleanup_jwds(sa_session: galaxy_scoped_session, object_store: BaseObjectStor
     days = config.failed_jobs_working_directory_cleanup_days
     failed_jobs = get_failed_jobs()
 
-    if not failed_jobs:
-        log.info("No failed jobs found within the last %s days", days)
-
+    found_failed_jobs = False
     for job in failed_jobs:
+        found_failed_jobs = True
         if delete_jwd(job):
             log.info("Deleted job working directory for job %s", job.id)
+
+    if not found_failed_jobs:
+        log.info("No failed jobs found within the last %s days", days)
 
 
 @galaxy_task(action="renewing Hashicorp Vault token")
