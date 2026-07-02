@@ -43,7 +43,7 @@ def test_clean_object_store_caches(tmp_path):
     assert not path.exists()
 
 
-def test_cleanup_jwds_logs_deleted_jobs_once():
+def test_cleanup_jwds_logs_successful_deletion():
     job = SimpleNamespace(id=198)
     query = SimpleNamespace(filter=lambda *args, **kwargs: [job])
     sa_session = SimpleNamespace(query=lambda *args, **kwargs: query)
@@ -65,9 +65,10 @@ def test_cleanup_jwds_does_not_log_deleted_when_already_missing():
     query = SimpleNamespace(filter=lambda *args, **kwargs: [job])
     sa_session = SimpleNamespace(query=lambda *args, **kwargs: query)
     config = SimpleNamespace(failed_jobs_working_directory_cleanup_days=5)
-    object_store = SimpleNamespace(
-        get_filename=lambda *args, **kwargs: (_ for _ in ()).throw(ObjectNotFound())
-    )
+    def raise_object_not_found(*args, **kwargs):
+        raise ObjectNotFound()
+
+    object_store = SimpleNamespace(get_filename=raise_object_not_found)
 
     with (
         patch("galaxy.celery.tasks.shutil.rmtree") as rmtree,
