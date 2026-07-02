@@ -1,5 +1,12 @@
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from galaxy.app_unittest_utils.galaxy_mock import MockApp
-from galaxy.celery.tasks import clean_object_store_caches
+from galaxy.celery.tasks import (
+    clean_object_store_caches,
+    cleanup_jwds,
+)
+from galaxy.exceptions import ObjectNotFound
 from galaxy.objectstore import BaseObjectStore
 from galaxy.objectstore.caching import CacheTarget
 
@@ -34,3 +41,39 @@ def test_clean_object_store_caches(tmp_path):
     clean_object_store_caches()
 
     assert not path.exists()
+
+
+def test_cleanup_jwds_logs_deleted_jobs_once():
+    job = SimpleNamespace(id=198)
+    query = SimpleNamespace(filter=lambda *args, **kwargs: SimpleNamespace(all=lambda: [job]))
+    sa_session = SimpleNamespace(query=lambda *args, **kwargs: query)
+    config = SimpleNamespace(failed_jobs_working_directory_cleanup_days=5)
+    object_store = SimpleNamespace(get_filename=lambda *args, **kwargs: "/tmp/job_work_198")
+
+    with (
+        patch("galaxy.celery.tasks.shutil.rmtree") as rmtree,
+        patch("galaxy.celery.tasks.log") as log,
+    ):
+        cleanup_jwds(sa_session, object_store, config)
+
+    rmtree.assert_called_once_with("/tmp/job_work_198")
+    log.info.assert_called_once_with("Deleted job working directory for job %s", 198)
+
+
+def test_cleanup_jwds_does_not_log_deleted_when_already_missing():
+    job = SimpleNamespace(id=198)
+    query = SimpleNamespace(filter=lambda *args, **kwargs: SimpleNamespace(all=lambda: [job]))
+    sa_session = SimpleNamespace(query=lambda *args, **kwargs: query)
+    config = SimpleNamespace(failed_jobs_working_directory_cleanup_days=5)
+    object_store = SimpleNamespace(
+        get_filename=lambda *args, **kwargs: (_ for _ in ()).throw(ObjectNotFound())
+    )
+
+    with (
+        patch("galaxy.celery.tasks.shutil.rmtree") as rmtree,
+        patch("galaxy.celery.tasks.log") as log,
+    ):
+        cleanup_jwds(sa_session, object_store, config)
+
+    rmtree.assert_not_called()
+    log.info.assert_not_called()
